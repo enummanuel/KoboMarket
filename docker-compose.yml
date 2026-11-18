@@ -1,0 +1,36 @@
+services:
+  mongodb:
+    image: mongo:8
+    container_name: kobomarket-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:17
+    container_name: kobomarket-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kobomarket_user
+      POSTGRES_PASSWORD: kobomarket_dev_password
+      POSTGRES_DB: kobomarket
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kobomarket_user -d kobomarket"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongodb_data:
+  postgres_data:
