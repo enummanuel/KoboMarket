@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const cors = require('cors');
 
 const app = express();
+const authRoutes = require('./routes/auth.routes');
+const errorHandler = require('./middleware/error.middleware');
 
 // Security middleware
 app.use(helmet());
@@ -23,6 +25,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.use('/api/auth', authRoutes);
+
 // Handle routes that do not exist
 app.use((req, res) => {
   res.status(404).json({
@@ -30,5 +34,7 @@ app.use((req, res) => {
     message: 'Route not found',
   });
 });
+
+app.use(errorHandler);
 
 module.exports = app;

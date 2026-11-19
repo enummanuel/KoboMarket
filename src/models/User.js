@@ -25,6 +25,12 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    phoneNumber: {
+      type: String,
+      trim: true,
+      default: undefined,
+    },
+
     password: {
       type: String,
       required: true,
@@ -43,6 +49,11 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
 
+    isPhoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+
     isActive: {
       type: Boolean,
       default: true,
@@ -50,6 +61,17 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+  }
+);
+
+// Phone numbers must be unique when provided.
+userSchema.index(
+  { phoneNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      phoneNumber: { $type: 'string' },
+    },
   }
 );
 
