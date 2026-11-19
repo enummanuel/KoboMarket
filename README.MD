@@ -255,7 +255,7 @@ Install the following:
 ### 1. Clone the repository
 
 ```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
+git clone https://github.com/enummanuel/KoboMarket.git
 cd KoboMarket
 ```
 
@@ -331,13 +331,12 @@ npm start
 The API runs on:
 
 ```text
-http://localhost:5000
+https://kobomarket-api-yqa2.onrender.com
 ```
 
 ### 8. Check the health endpoint
 
-```http
-GET http://localhost:5000/api/health
+https://kobomarket-api-yqa2.onrender.com/api/health
 ```
 
 A successful response should look like:
@@ -417,6 +416,17 @@ The current implementation establishes the backend foundation, but several marke
 - Improve structured logging and monitoring.
 - Add API documentation with Swagger.
 - Improve Docker deployment and production configuration.
+
+## Live Deployment
+
+**Base URL:** https://kobomarket-api-yqa2.onrender.com
+
+**Health Check:** https://kobomarket-api-yqa2.onrender.com/api/health
+
+The KoboMarket API is deployed on Render. The application connects to MongoDB Atlas for document-based data and Render PostgreSQL for relational and financial data.
+
+The health-check endpoint has been tested and returns a successful response.
+
 
 ## Conclusion
 
