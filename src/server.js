@@ -18,7 +18,7 @@ const startServer = async () => {
     console.log('PostgreSQL connected successfully');
 
     // Start accepting HTTP requests
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`KoboMarket API running on port ${PORT}`);
     });
   } catch (error) {
