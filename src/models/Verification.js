@@ -15,6 +15,13 @@ const verificationSchema = new mongoose.Schema(
       required: true,
     },
 
+    purpose: {
+      type: String,
+      enum: ['EMAIL_VERIFICATION', 'PASSWORD_RESET'],
+      default: 'EMAIL_VERIFICATION',
+      required: true,
+    },
+
     target: {
       type: String,
       required: true,
@@ -45,17 +52,20 @@ const verificationSchema = new mongoose.Schema(
       default: null,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Automatically clean up expired verification records.
+// Automatically delete expired verification records.
 verificationSchema.index(
   { expiresAt: 1 },
   { expireAfterSeconds: 0 }
 );
 
-verificationSchema.index({ userId: 1, channel: 1 });
+// Find verification records belonging to a user and channel.
+verificationSchema.index({
+  userId: 1,
+  channel: 1,
+  purpose: 1,
+});
 
 module.exports = mongoose.model('Verification', verificationSchema);

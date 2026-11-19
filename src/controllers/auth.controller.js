@@ -40,6 +40,45 @@ const login = async (req, res) => {
   });
 };
 
+const refresh = async (req, res) => {
+  const result = await authService.refreshAccessToken(req.body);
+
+  return res.status(200).json({
+    success: true,
+    message: 'Token refreshed successfully',
+    data: result,
+  });
+};
+
+const logout = async (req, res) => {
+  const result = await authService.logoutUser(req.body);
+
+  return res.status(200).json({
+    success: true,
+    message: result.message,
+  });
+};
+
+// REQUEST PASSWORD RESET
+const requestPasswordReset = async (req, res) => {
+  const result = await verificationService.requestPasswordReset(req.body);
+
+  return res.status(200).json({
+    success: true,
+    message: result.message,
+  });
+};
+
+// RESET PASSWORD
+const resetPassword = async (req, res) => {
+  const result = await authService.resetPassword(req.body);
+
+  return res.status(200).json({
+    success: true,
+    message: result.message,
+  });
+};
+
 const getMe = async (req, res) => {
   return res.status(200).json({
     success: true,
@@ -55,5 +94,9 @@ module.exports = {
   verifyEmail,
   resendOTP,
   login,
+  refresh,
+  logout,
+  requestPasswordReset,
+  resetPassword,
   getMe,
 };

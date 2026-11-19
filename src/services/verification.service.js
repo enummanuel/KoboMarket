@@ -10,19 +10,31 @@ const {
 
 const { sendOTP } = require('./otp-delivery.service');
 
-const createChallenge = async (user, channel = 'EMAIL') => {
+// CREATE OTP CHALLENGE
+const createChallenge = async (
+  user,
+  channel = 'EMAIL',
+  purpose = 'EMAIL_VERIFICATION'
+) => {
   if (channel !== 'EMAIL') {
-    const error = new Error('Only email verification is currently supported');
+    const error = new Error('Only email OTP delivery is currently supported');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!['EMAIL_VERIFICATION', 'PASSWORD_RESET'].includes(purpose)) {
+    const error = new Error('Invalid verification purpose');
     error.statusCode = 400;
     throw error;
   }
 
   const now = new Date();
 
-  // Check for an existing active challenge.
+  // Find an active challenge for this specific purpose.
   const activeChallenge = await Verification.findOne({
     userId: user._id,
     channel,
+    purpose,
     consumedAt: null,
   }).sort({ createdAt: -1 });
 
@@ -33,11 +45,12 @@ const createChallenge = async (user, channel = 'EMAIL') => {
     throw error;
   }
 
-  // Invalidate previous challenges.
+  // Invalidate previous challenges for the same purpose only.
   await Verification.updateMany(
     {
       userId: user._id,
       channel,
+      purpose,
       consumedAt: null,
     },
     {
@@ -50,6 +63,7 @@ const createChallenge = async (user, channel = 'EMAIL') => {
   const verification = await Verification.create({
     userId: user._id,
     channel,
+    purpose,
     target: user.email,
     otpHash: hashOTP(otp),
     attempts: 0,
@@ -71,6 +85,7 @@ const createChallenge = async (user, channel = 'EMAIL') => {
   return verification;
 };
 
+// VERIFY EMAIL
 const verifyEmail = async ({ email, otp }) => {
   const normalizedEmail = email.trim().toLowerCase();
 
@@ -95,6 +110,7 @@ const verifyEmail = async ({ email, otp }) => {
   const challenge = await Verification.findOne({
     userId: user._id,
     channel: 'EMAIL',
+    purpose: 'EMAIL_VERIFICATION',
     target: normalizedEmail,
     consumedAt: null,
     expiresAt: { $gt: now },
@@ -110,7 +126,6 @@ const verifyEmail = async ({ email, otp }) => {
   const isValid = compareOTP(otp, challenge.otpHash);
 
   if (!isValid) {
-    // Atomically increment failed attempts.
     const updatedChallenge = await Verification.findOneAndUpdate(
       {
         _id: challenge._id,
@@ -124,7 +139,6 @@ const verifyEmail = async ({ email, otp }) => {
       { new: true }
     );
 
-    // Permanently consume the challenge after five failed attempts.
     if (updatedChallenge && updatedChallenge.attempts >= 5) {
       await Verification.updateOne(
         {
@@ -180,11 +194,12 @@ const verifyEmail = async ({ email, otp }) => {
     throw error;
   }
 
-  // Invalidate any other outstanding email challenges.
+  // Invalidate other outstanding email-verification challenges.
   await Verification.updateMany(
     {
       userId: user._id,
       channel: 'EMAIL',
+      purpose: 'EMAIL_VERIFICATION',
       consumedAt: null,
     },
     {
@@ -197,6 +212,7 @@ const verifyEmail = async ({ email, otp }) => {
   };
 };
 
+// RESEND EMAIL VERIFICATION OTP
 const resendOTP = async ({ email }) => {
   const normalizedEmail = email.trim().toLowerCase();
 
@@ -204,24 +220,52 @@ const resendOTP = async ({ email }) => {
     email: normalizedEmail,
   });
 
-  // Avoid revealing whether an account exists.
   if (!user || user.isEmailVerified) {
     return {
       message: 'If the account exists and needs verification, a code will be sent.',
     };
   }
 
-  // The challenge service enforces the cooldown.
-  await createChallenge(user, 'EMAIL');
+  await createChallenge(user, 'EMAIL', 'EMAIL_VERIFICATION');
 
   return {
     message: 'If the account exists and needs verification, a code will be sent.',
   };
 };
 
+// REQUEST PASSWORD RESET OTP
+const requestPasswordReset = async ({ email }) => {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const user = await User.findOne({
+    email: normalizedEmail,
+  });
+
+  // Do not reveal whether an account exists.
+  if (!user || !user.isEmailVerified || !user.isActive) {
+    return {
+      message: 'If the account exists, a password reset code will be sent.',
+    };
+  }
+
+  try {
+    await createChallenge(user, 'EMAIL', 'PASSWORD_RESET');
+  } catch (error) {
+    // Keep the response generic during the resend cooldown.
+    if (error.statusCode !== 429) {
+      throw error;
+    }
+  }
+
+  return {
+    message: 'If the account exists, a password reset code will be sent.',
+  };
+};
+
+
 module.exports = {
   createChallenge,
   verifyEmail,
   resendOTP,
+  requestPasswordReset,
 };
-
